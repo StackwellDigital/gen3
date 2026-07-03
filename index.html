@@ -148,7 +148,28 @@
     font-weight:600;
   }
   .btn-solid:hover{ background:var(--amber-bright); border-color:var(--amber-bright); }
-  .navtoggle{ display:none; }
+  .navtoggle{
+    display:none;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    gap:5px;
+    width:38px; height:38px;
+    background:transparent;
+    border:1px solid rgba(10,15,28,0.15);
+    cursor:pointer;
+    padding:0;
+    flex-shrink:0;
+  }
+  .navtoggle span{
+    display:block;
+    width:18px; height:1.5px;
+    background:#13233c;
+    transition:transform .25s ease, opacity .2s ease;
+  }
+  .navtoggle[aria-expanded="true"] span:nth-child(1){ transform:translateY(6.5px) rotate(45deg); }
+  .navtoggle[aria-expanded="true"] span:nth-child(2){ opacity:0; }
+  .navtoggle[aria-expanded="true"] span:nth-child(3){ transform:translateY(-6.5px) rotate(-45deg); }
 
   /* ---------- HERO (video) ---------- */
   .hero{ position:relative; }
@@ -515,26 +536,77 @@
   .foot-links a:hover{ color:var(--amber); }
 
   @media (max-width: 900px){
-    .navlinks{ display:none; }
+    nav{ position:relative; }
+    .navtoggle{ display:flex; }
+    .navlinks{
+      display:flex;
+      position:absolute;
+      top:100%; left:0; right:0;
+      flex-direction:column; align-items:stretch; gap:0;
+      background:rgba(244,246,250,0.98);
+      border-bottom:1px solid rgba(10,15,28,0.08);
+      max-height:0; overflow:hidden; opacity:0;
+      transition:max-height .3s ease, opacity .25s ease;
+    }
+    .navlinks.is-open{ max-height:320px; opacity:1; }
+    .navlinks a{
+      padding:15px 20px;
+      border-bottom:1px solid rgba(10,15,28,0.06);
+      font-size:15px;
+    }
+    .navlinks a:last-child{ border-bottom:none; }
+
+    section{ padding:64px 0; }
+    .section-head{ margin-bottom:36px; }
+    .section-head h2{ font-size:clamp(26px, 6vw, 34px); }
+
     .hero-video{ height:78vh; min-height:480px; }
+    .hero-content .wrap{ padding-bottom:40px; }
+    .hero-actions{ flex-direction:column; align-items:stretch; gap:12px; }
+    .hero-actions .btn{ justify-content:center; }
+
     .carousel{ flex-direction:column; min-height:0; }
-    .carousel-nav{ width:100%; height:280px; border-right:none; border-bottom:1px solid var(--line-soft); }
-    .carousel-stage{ min-height:420px; }
-    .service{ grid-template-columns:1fr; gap:28px; }
+    .carousel-nav{ width:100%; height:auto; border-right:none; border-bottom:1px solid var(--line-soft); padding:8px 24px; }
+    .carousel-nav-inner{ height:auto; }
+    .chip{ padding:13px 4px 13px 12px; }
+    .carousel-stage{ min-height:400px; padding:28px 20px; }
+
+    .service{ padding:40px 0; gap:24px; }
+    .service{ grid-template-columns:1fr; }
     .service.reverse .service-copy{ order:1; }
     .service.reverse .service-spec{ order:2; }
-    .about-grid{ grid-template-columns:1fr; }
+    .service-copy h3{ font-size:23px; }
+
     .compare{ grid-template-columns:1fr; }
+    .compare-col{ padding:28px 24px; }
     .compare-col.old{ border-right:none; border-bottom:1px solid var(--line-soft); }
-    .contact{ grid-template-columns:1fr; padding:32px; }
-    .form-row{ grid-template-columns:1fr; }
+
     .vgrid{ grid-template-columns:1fr 1fr; }
+    .vtile{ padding:22px 18px 20px; }
+
+    .about-grid{ grid-template-columns:1fr; gap:32px; }
+    .pullquote{ font-size:19px; }
+
+    .contact{ grid-template-columns:1fr; padding:28px; gap:32px; }
+    .contact-info h2{ font-size:26px; }
+    .form-row{ grid-template-columns:1fr; }
+    .contact button[type="submit"]{ width:100%; justify-content:center; }
+
+    .foot-row{ flex-direction:column; align-items:flex-start; gap:14px; }
   }
   @media (max-width:600px){
-    nav{ padding:10px 20px; }
+    nav{ padding:10px 16px; }
     .wrap{ padding:0 20px; }
-    .carousel-nav{ padding:0 24px; }
+    .logo-img{ height:30px; }
+    .carousel-nav{ padding:6px 20px; }
+    .carousel-stage{ padding:24px 16px; }
+    .carousel-card{ width:100%; }
     .vgrid{ grid-template-columns:1fr; }
+    .why-grid{ grid-template-columns:1fr !important; }
+    .hero h1{ font-size:clamp(30px, 8vw, 40px); }
+    .hero p.lead{ font-size:16px; }
+    .compare-col .big{ font-size:22px; }
+    .service-spec{ padding:22px 20px; }
   }
   @media (prefers-reduced-motion: reduce){
     html{ scroll-behavior:auto; }
@@ -553,13 +625,16 @@
         GEN3 <span class="sub">Solutions</span>
       </span>
     </a>
-    <div class="navlinks">
+    <div class="navlinks" id="navLinks">
       <a href="#avaas">AVaaS</a>
       <a href="#services">Services</a>
       <a href="#verticals">Verticals</a>
       <a href="#about">About</a>
       <a href="#contact">Contact</a>
     </div>
+    <button class="navtoggle" id="navToggle" aria-label="Open menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
   </nav>
 </header>
 
@@ -866,6 +941,23 @@
 </footer>
 
 <script>
+  // ---------- Mobile nav toggle ----------
+  (function initNav(){
+    const btn = document.getElementById('navToggle');
+    const links = document.getElementById('navLinks');
+    if (!btn || !links) return;
+    btn.addEventListener('click', () => {
+      const isOpen = links.classList.toggle('is-open');
+      btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+    links.querySelectorAll('a').forEach(a => {
+      a.addEventListener('click', () => {
+        links.classList.remove('is-open');
+        btn.setAttribute('aria-expanded', 'false');
+      });
+    });
+  })();
+
   // ---------- Why Gen3 carousel ----------
   // Copy sourced verbatim from the current gen3av.com "Why Choose Gen3" accordion.
   // Image files expected at ./images/<file> — supply the 5 assets and it just works.
